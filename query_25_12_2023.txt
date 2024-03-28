@@ -1,0 +1,196 @@
+------------------NUEVAS TABLAS 
+
+
+create table sacs.solicitud_establecimiento (
+	fk_nombre_solicitud numeric,
+	fk_tip_establecimiento numeric
+
+)
+
+
+	ALTER TABLE "sacs".solicitud_establecimiento
+	ADD CONSTRAINT fk_nombre_solicitud_se   
+	FOREIGN KEY (fk_nombre_solicitud) REFERENCES "sacs".nombre_solicitud(pk_nombre_solicitud);
+	
+	ALTER TABLE "sacs".solicitud_establecimiento
+	ADD CONSTRAINT fk_tip_establecimiento_se   
+	FOREIGN KEY (fk_tip_establecimiento) REFERENCES "sacs".tip_establecimiento(pk_tip_establecimiento);
+
+
+
+
+insert into SACS.solicitud_establecimiento(fk_nombre_solicitud,fk_tip_establecimiento)
+	values (1,1),
+		   (1,2),
+		   (1,4),
+		   (2,5),
+		   (3,1),
+	       (3,2),
+		   (4,1),
+		   (4,2),
+		   (5,1),
+		   (5,2),
+		   (6,1),
+		   (6,2),
+		   (7,1),
+		   (7,2),
+		   (8,1),
+		   (8,4),
+		   (8,6),
+		   (9,1),
+		   (9,2);
+-------------------------------------------------------------
+--------------------------------------------------------
+
+----------------------vista nombre_solicitud_con_establecimiento_view
+
+create or replace view sacs.nombre_solicitud_con_establecimiento_view as
+select se.fk_nombre_solicitud,ns.descripcion as nombre_solicitud,
+	   se.fk_tip_establecimiento, te.descripcion as tipo_estableicmiento
+	from sacs.solicitud_establecimiento as se
+	inner join sacs.nombre_solicitud as ns on ns.pk_nombre_solicitud = se.fk_nombre_solicitud
+	inner join sacs.tip_establecimiento as te on te.pk_tip_establecimiento = se.fk_tip_establecimiento
+
+----------------------------------------------------
+
+
+-------------------vistas perfil de usuario 
+
+---cantidad_solicitud_empresas
+create or replace view sacs.cantidad_solicitud_empresas as
+select count(*) as cantidad, so.fk_empresa as empresa
+	from sacs.solicitud as so 
+	group by so.fk_empresa
+
+-----------------------------------
+
+---cantidad_establecimiento_empresas
+create or replace view sacs.cantidad_establecimiento_empresas as
+select count(*) as cantidad, so.fk_empresa as empresa
+	from sacs.establecimiento as so 
+	group by so.fk_empresa
+
+
+-----------------------------------------------
+--------------perfil_usuario_empresa_view
+create or replace view sacs.perfil_usuario_empresa_view as 
+
+	select e.pk_empresa as rif_empresa, te.tipo_empresa, e.nombre_empresa ,concat(c.primer_nombre , ' ', c.primer_apellido) as representante_legal,
+		concat(cr.primer_nombre , ' ', cr.primer_apellido) as regente,
+		concat(cp.primer_nombre , ' ', cp.primer_apellido) as poder,
+		--concat(co.primer_nombre , ' ', co.primer_apellido) as propietario,
+		e2.nombre_estado as estado_empresa, m.nombre_municipio as municipio_empresa, p2.nombre_parroquia as parroquia_empresa,
+		ct.telefono_movil ,ct.telefono_local ,ct.correo_principal ,ct.correo_segundario ,ct.urbanizacion , 
+		ct.avenida ,ct.edificio ,ct.piso_local ,ct.referencia ,ct.codigo_postal 
+		from sacs.empresa e
+		inner join sacs.tip_empresa te on te.pk_tip_empresa  = e.fk_tip_empresa 
+		inner join sacs.representante_legal rl on rl.pk_representante_legal  = e.fk_representante_legal 
+		inner join sacs.ciudadano c on c.pk_ciudadano = rl.fk_ciudadano 
+		inner join sacs.ciudadano cr on cr.pk_ciudadano = e.fk_regente 
+		inner join sacs.poder p on p.pk_poder = e.fk_poder 
+		inner join sacs.ciudadano cp on cp.pk_ciudadano  = p.fk_ciudadano 
+		inner join sacs.catastro ct on ct.pk_catastro = e.fk_catastro 
+		inner join sacs.parroquia p2 on p2.pk_parroquia = ct.fk_parroquia 
+		inner join sacs.municipio m on m.pk_municipio = p2.fk_municipio 
+		inner join sacs.estado e2 on e2.pk_estado = m.fk_estado 
+		--inner join sacs.propietario p3 on p3.fk_empresa = e.pk_empresa 
+		--inner join sacs.ciudadano co on co.pk_ciudadano = p3.fk_ciudadano 
+		
+----------------------------------------------------
+-----------------------perfil_propietairo_empresa
+
+create or replace view sacs.perfil_propietario_empresa_view as
+select e.pk_empresa as rif_empresa, te.tipo_empresa, e.nombre_empresa ,
+		concat(co.primer_nombre , ' ', co.primer_apellido) as propietario
+		from sacs.empresa e
+		inner join sacs.tip_empresa te on te.pk_tip_empresa  = e.fk_tip_empresa 
+		inner join sacs.representante_legal rl on rl.pk_representante_legal  = e.fk_representante_legal 
+		inner join sacs.ciudadano c on c.pk_ciudadano = rl.fk_ciudadano 
+		inner join sacs.ciudadano cr on cr.pk_ciudadano = e.fk_regente 
+		inner join sacs.poder p on p.pk_poder = e.fk_poder 
+		inner join sacs.ciudadano cp on cp.pk_ciudadano  = p.fk_ciudadano 
+		inner join sacs.propietario p3 on p3.fk_empresa = e.pk_empresa 
+		inner join sacs.ciudadano co on co.pk_ciudadano = p3.fk_ciudadano 
+
+
+
+
+
+
+
+
+------------------------------------------------------------
+-------------------------------------------------------
+------------CRRECCION FUNCIONES 
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_establecimiento(character varying, integer, integer, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_establecimiento(
+	i_rif_empresa character varying,
+	i_tip_establecimiento integer,
+	i_dominio_establecimiento integer,
+	i_parroquia_establecimiento integer,
+	i_tlf_establecimiento character varying,
+	i_tlf_dos_establecimiento character varying,
+	i_email_establecimiento character varying,
+	i_email_dos_establecimiento character varying,
+	i_observ_establecimiento character varying,
+	i_estatus_establecimiento integer,
+	i_zona_establecimiento character varying,
+	i_ruta_establecimiento character varying,
+	i_espacio_establecimiento character varying,
+	i_nivel_establecimiento character varying,
+	i_codigo_postal_establecimiento character varying,
+	i_metros_cuadrados_establecimiento character varying,
+	i_referencia_establecimiento character varying,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+
+   v_solicitud_empresa varchar;
+   v_pk_establecimiento numeric;
+   v_catastro_establecimiento numeric;
+
+begin
+		   
+		 	--si no hay categoria 
+					if i_rif_empresa is null or i_rif_empresa = '' then 
+						retorno := 3;
+					  else   
+					  	
+						--obtener nro_solicitud 
+					  	select max(s.pk_solicitud) into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+					  
+					  
+						--insert establecimineto 
+						insert into "sacs".catastro (pk_catastro,fk_parroquia,telefono_movil,telefono_local,correo_principal,correo_segundario)
+							values (nextval('"sacs".sq_catastro'),i_parroquia_establecimiento,i_tlf_establecimiento,i_tlf_dos_establecimiento,
+									i_email_establecimiento,i_email_dos_establecimiento);
+						select max(ct.pk_catastro) into v_catastro_establecimiento from "sacs".catastro as ct;
+
+						insert into "sacs".establecimiento (pk_establecimiento,fk_empresa,fk_tip_establecimiento,fk_dominio,fk_catastro,observacion,created_date,fk_estatus,zona_establecimineto,ruta_establecimineto,espacio_establecimineto,nivel_establecimiento,codigo_postal,metros_cuadrados,punto_referencia)
+						 values (nextval('"sacs".sq_establecimiento'),i_rif_empresa,i_tip_establecimiento,i_dominio_establecimiento,v_catastro_establecimiento,i_observ_establecimiento,CURRENT_TIMESTAMP,i_estatus_establecimiento,upper(i_zona_establecimiento),upper(i_ruta_establecimiento),upper(i_espacio_establecimiento),upper(i_nivel_establecimiento),i_codigo_postal_establecimiento,i_metros_cuadrados_establecimiento,upper(i_referencia_establecimiento));
+						select max(es.pk_establecimiento) into v_pk_establecimiento from "sacs".establecimiento as es where es.fk_empresa = i_rif_empresa;
+		
+						insert into "sacs".detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+								values(v_solicitud_empresa, v_pk_establecimiento);
+						
+						retorno :=2;-- registro establecimiento exito
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+--------------------------------------------------
+-------------------------------------------------

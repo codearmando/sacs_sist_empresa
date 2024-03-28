@@ -1,0 +1,636 @@
+-- View: sacs.activ_economic_empresas_view
+
+-- DROP VIEW sacs.activ_economic_empresas_view;
+
+CREATE OR REPLACE VIEW sacs.activ_economic_empresas_view
+ AS
+ SELECT ae.pk_activ_economic,
+    ae.activ_economica
+   FROM sacs.actividad_economica ae;
+
+ALTER TABLE sacs.activ_economic_empresas_view
+    OWNER TO postgres;
+
+---------------------------------------
+
+-- View: sacs.actividad_area_view
+
+-- DROP VIEW sacs.actividad_area_view;
+
+CREATE OR REPLACE VIEW sacs.actividad_area_view
+ AS
+ SELECT ar.fk_activ_economic,
+    ar.fk_area,
+    aa.descripcion AS area_descripcion,
+    ae.activ_economica
+   FROM sacs.actividad_area ar
+     JOIN sacs.area aa ON aa.pk_area = ar.fk_area
+     JOIN sacs.actividad_economica ae ON ae.pk_activ_economic = ar.fk_activ_economic;
+
+ALTER TABLE sacs.actividad_area_view
+    OWNER TO postgres;
+
+--------------------------------------
+
+-- View: sacs.actividad_catalogo_view
+
+-- DROP VIEW sacs.actividad_catalogo_view;
+
+CREATE OR REPLACE VIEW sacs.actividad_catalogo_view
+ AS
+ SELECT ae.pk_activ_economic,
+    ae.activ_economica,
+    c.pk_categoria,
+    c.nombre
+   FROM sacs.actividad_catego ac
+     JOIN sacs.actividad_economica ae ON ae.pk_activ_economic = ac.fk_actividad_economic::numeric
+     JOIN sacs.categoria c ON c.pk_categoria = ac.fk_categoria::numeric;
+
+ALTER TABLE sacs.actividad_catalogo_view
+    OWNER TO postgres;
+
+--------------------------------------------------
+
+-- View: sacs.actividad_categoria_view
+
+-- DROP VIEW sacs.actividad_categoria_view;
+
+CREATE OR REPLACE VIEW sacs.actividad_categoria_view
+ AS
+ SELECT ae.pk_activ_economic,
+    ae.activ_economica,
+    c.pk_categoria,
+    c.nombre
+   FROM sacs.actividad_catego ac
+     JOIN sacs.actividad_economica ae ON ae.pk_activ_economic = ac.fk_actividad_economic::numeric
+     JOIN sacs.categoria c ON c.pk_categoria = ac.fk_categoria::numeric;
+
+ALTER TABLE sacs.actividad_categoria_view
+    OWNER TO postgres;
+
+-----------------------------------------------
+
+-- View: sacs.actividad_solo_lab
+
+-- DROP VIEW sacs.actividad_solo_lab;
+
+CREATE OR REPLACE VIEW sacs.actividad_solo_lab
+ AS
+ SELECT aa.fk_activ_economic,
+    aa.fk_area,
+    aa.area_descripcion,
+    aa.activ_economica
+   FROM sacs.actividad_area_view aa
+  WHERE aa.fk_activ_economic = 11::numeric;
+
+ALTER TABLE sacs.actividad_solo_lab
+    OWNER TO postgres;
+
+---------------------------------------------------
+
+-- View: sacs.actividad_tipo_producto_view
+
+-- DROP VIEW sacs.actividad_tipo_producto_view;
+
+CREATE OR REPLACE VIEW sacs.actividad_tipo_producto_view
+ AS
+ SELECT ae.pk_activ_economic,
+    ae.activ_economica,
+    tp.pk_tip_producto,
+    tp.nombre_tip_producto
+   FROM sacs.actividad_tipo_producto atp
+     JOIN sacs.actividad_economica ae ON ae.pk_activ_economic = atp.fk_activ_econimoc::numeric
+     JOIN sacs.tipo_producto tp ON tp.pk_tip_producto = atp.fk_tip_producto::numeric;
+
+ALTER TABLE sacs.actividad_tipo_producto_view
+    OWNER TO postgres;
+
+-----------------------------------------------
+
+-- View: sacs.areas_empresas_view
+
+-- DROP VIEW sacs.areas_empresas_view;
+
+CREATE OR REPLACE VIEW sacs.areas_empresas_view
+ AS
+ SELECT ar.pk_area,
+    ar.descripcion
+   FROM sacs.area ar;
+
+ALTER TABLE sacs.areas_empresas_view
+    OWNER TO postgres;
+
+-----------------------------------------------
+
+-- View: sacs.categoria_operaciones_view
+
+-- DROP VIEW sacs.categoria_operaciones_view;
+
+CREATE OR REPLACE VIEW sacs.categoria_operaciones_view
+ AS
+ SELECT c.pk_categoria,
+    c.nombre AS nombre_categoria,
+    o.pk_operaciones,
+    o.nombre AS nombre_operaciones
+   FROM sacs.categoria c
+     JOIN sacs.categ_operaciones op ON op.fk_categoria = c.pk_categoria
+     JOIN sacs.operaciones o ON o.pk_operaciones = op.fk_operaciones;
+
+ALTER TABLE sacs.categoria_operaciones_view
+    OWNER TO postgres;
+
+--------------------------------------------------
+
+-- View: sacs.ciudadanos_view
+
+-- DROP VIEW sacs.ciudadanos_view;
+
+CREATE OR REPLACE VIEW sacs.ciudadanos_view
+ AS
+ SELECT ci.pk_ciudadano,
+    concat(ci.primer_nombre, ' ', ci.segundo_nombre) AS nombre_completo,
+    concat(ci.primer_apellido, ' ', ci.segundo_apellido) AS apellido_completo,
+    ci.sexo,
+    ci.fecha_nacimiento
+   FROM sacs.ciudadano ci;
+
+ALTER TABLE sacs.ciudadanos_view
+    OWNER TO postgres;
+
+--------------------------------------------------
+
+-- View: sacs.coordinacion_area_view
+
+-- DROP VIEW sacs.coordinacion_area_view;
+
+CREATE OR REPLACE VIEW sacs.coordinacion_area_view
+ AS
+ SELECT c.pk_coordinacion,
+    c.descripcion AS coordinacion,
+    es.pk_area,
+    es.descripcion AS area
+   FROM sacs.coordinacion_area ca
+     JOIN sacs.area es ON es.pk_area = ca.fk_area::numeric
+     JOIN sacs.coordinacion c ON c.pk_coordinacion = ca.fk_coordinacion::numeric;
+
+ALTER TABLE sacs.coordinacion_area_view
+    OWNER TO postgres;
+
+---------------------------------------------------------
+
+-- View: sacs.empresa_datos_view
+
+-- DROP VIEW sacs.empresa_datos_view;
+
+CREATE OR REPLACE VIEW sacs.empresa_datos_view
+ AS
+ SELECT em.pk_empresa,
+    tp.tipo_empresa,
+    em.nombre_empresa,
+    es.tipo_estatus,
+    ca.correo_principal,
+    ca.correo_segundario,
+    ca.telefono_movil,
+    ca.telefono_local,
+    ca.direccion,
+    ed.nombre_estado,
+    mu.nombre_municipio,
+    pa.nombre_parroquia
+   FROM sacs.usuario us
+     JOIN sacs.empresa em ON em.pk_empresa::text = us.fk_empresa::text
+     JOIN sacs.estatus es ON es.pk_estatus = us.fk_estatus::numeric
+     JOIN sacs.catastro ca ON ca.pk_catastro = em.fk_catastro
+     JOIN sacs.tip_empresa tp ON tp.pk_tip_empresa = em.fk_tip_empresa
+     JOIN sacs.parroquia pa ON pa.pk_parroquia = ca.fk_parroquia
+     JOIN sacs.municipio mu ON mu.pk_municipio = pa.fk_municipio
+     JOIN sacs.estado ed ON ed.pk_estado::text = mu.fk_estado::text;
+
+ALTER TABLE sacs.empresa_datos_view
+    OWNER TO postgres;
+
+----------------------------------------
+
+-- View: sacs.estadistica_solicitud_anual
+
+-- DROP VIEW sacs.estadistica_solicitud_anual;
+
+CREATE OR REPLACE VIEW sacs.estadistica_solicitud_anual
+ AS
+ SELECT count(so.*) AS cantidad,
+    EXTRACT(year FROM so.fecha_creacion) AS anio,
+    so.fk_empresa
+   FROM sacs.solicitud so
+  GROUP BY (EXTRACT(year FROM so.fecha_creacion)), so.fk_empresa;
+
+ALTER TABLE sacs.estadistica_solicitud_anual
+    OWNER TO postgres;
+
+
+---------------------------------------------
+
+-- View: sacs.estadistica_solicitud_mensual
+
+-- DROP VIEW sacs.estadistica_solicitud_mensual;
+
+CREATE OR REPLACE VIEW sacs.estadistica_solicitud_mensual
+ AS
+ SELECT count(so.*) AS cantidad,
+    EXTRACT(month FROM so.fecha_creacion) AS mes,
+    so.fk_empresa
+   FROM sacs.solicitud so
+  GROUP BY (EXTRACT(month FROM so.fecha_creacion)), so.fk_empresa;
+
+ALTER TABLE sacs.estadistica_solicitud_mensual
+    OWNER TO postgres;
+
+----------------------------------------------------
+
+-- View: sacs.estados_view
+
+-- DROP VIEW sacs.estados_view;
+
+CREATE OR REPLACE VIEW sacs.estados_view
+ AS
+ SELECT es.pk_estado,
+    es.nombre_estado
+   FROM sacs.estado es;
+
+ALTER TABLE sacs.estados_view
+    OWNER TO postgres;
+
+-----------------------------------------------------
+
+-- View: sacs.formas_productos_view
+
+-- DROP VIEW sacs.formas_productos_view;
+
+CREATE OR REPLACE VIEW sacs.formas_productos_view
+ AS
+ SELECT fo.pk_forma_product,
+    fo.forma_producto
+   FROM sacs.forma_prodcucto fo;
+
+ALTER TABLE sacs.formas_productos_view
+    OWNER TO postgres;
+
+-------------------------------------------------
+
+-- View: sacs.listado_solicitud
+
+-- DROP VIEW sacs.listado_solicitud;
+
+CREATE OR REPLACE VIEW sacs.listado_solicitud
+ AS
+ SELECT s.pk_solicitud AS solicitud,
+    s.fk_empresa AS rif,
+    e.nombre_empresa,
+    aeev.activ_economica,
+    ts.descripcion AS tipo_solicitud,
+    ns.descripcion AS nombre_solicitud,
+    s.fecha_creacion,
+    es.pk_estatus_solicitud AS cod_estatus,
+    es.descripcion AS estatus
+   FROM sacs.solicitud s
+     JOIN sacs.empresa e ON e.pk_empresa::text = s.fk_empresa::text
+     JOIN sacs.activ_economic_empresas_view aeev ON aeev.pk_activ_economic = s.fk_activ_economic
+     JOIN sacs.tipo_solicitud ts ON ts.pk_tipo_solicitud = s.fk_tipo_solicitud
+     JOIN sacs.nombre_solicitud ns ON ns.pk_nombre_solicitud = s.fk_nombre_solicitud
+     JOIN sacs.estatus_solicitud es ON es.pk_estatus_solicitud = s.fk_estatus_solicitud;
+
+ALTER TABLE sacs.listado_solicitud
+    OWNER TO postgres;
+
+----------------------------------------
+
+-- View: sacs.listado_usuarios_f
+
+-- DROP VIEW sacs.listado_usuarios_f;
+
+CREATE OR REPLACE VIEW sacs.listado_usuarios_f
+ AS
+ SELECT uf.id AS cod,
+    (uf.nombre::text || ' '::text) || uf.apellido::text AS nombre_c,
+    uf.cedula,
+    uf.telefono,
+    uf.email,
+    c.descripcion AS coordinacion,
+    uf.status
+   FROM sacs.usuarios_funcionario uf
+     JOIN sacs.coordinacion c ON c.pk_coordinacion = uf.fk_coordinacion
+  ORDER BY uf.id;
+
+ALTER TABLE sacs.listado_usuarios_f
+    OWNER TO postgres;
+
+----------------------------------------
+
+-- View: sacs.municipios_view
+
+-- DROP VIEW sacs.municipios_view;
+
+CREATE OR REPLACE VIEW sacs.municipios_view
+ AS
+ SELECT mu.pk_municipio,
+    mu.fk_estado,
+    mu.nombre_municipio
+   FROM sacs.municipio mu;
+
+ALTER TABLE sacs.municipios_view
+    OWNER TO postgres;
+
+---------------------------------------------
+
+-- View: sacs.parroquia_mun_estado_view
+
+-- DROP VIEW sacs.parroquia_mun_estado_view;
+
+CREATE OR REPLACE VIEW sacs.parroquia_mun_estado_view
+ AS
+ SELECT pv.pk_parroquia,
+    pv.nombre_parroquia,
+    pv.fk_municipio,
+    m.pk_municipio,
+    m.nombre_municipio,
+    m.fk_estado,
+    e.pk_estado,
+    e.nombre_estado
+   FROM sacs.parroquia pv
+     JOIN sacs.municipio m ON m.pk_municipio = pv.fk_municipio
+     JOIN sacs.estado e ON e.pk_estado::text = m.fk_estado::text;
+
+ALTER TABLE sacs.parroquia_mun_estado_view
+    OWNER TO postgres;
+
+-------------------------------------------------------
+
+-- View: sacs.parroquias_view
+
+-- DROP VIEW sacs.parroquias_view;
+
+CREATE OR REPLACE VIEW sacs.parroquias_view
+ AS
+ SELECT pa.pk_parroquia,
+    pa.fk_municipio,
+    pa.nombre_parroquia
+   FROM sacs.parroquia pa;
+
+ALTER TABLE sacs.parroquias_view
+    OWNER TO postgres;
+
+-----------------------------------------------
+
+-- View: sacs.regentes_view
+
+-- DROP VIEW sacs.regentes_view;
+
+CREATE OR REPLACE VIEW sacs.regentes_view
+ AS
+ SELECT re.fk_ciudadano,
+    concat(cu.primer_nombre, ' ', cu.segundo_nombre) AS nombre_completo,
+    concat(cu.primer_apellido, ' ', cu.segundo_apellido) AS apellido_completo,
+    re.institucion_formadora,
+    re.profesion,
+    re.fecha_grado,
+    re.licencia,
+    re.tomo_registro,
+    re.folio_registro,
+    re.correo,
+    re.telefono,
+    re.celular,
+    re.fecha_registro
+   FROM sacs.regente re
+     JOIN sacs.ciudadano cu ON cu.pk_ciudadano::text = re.fk_ciudadano::text;
+
+ALTER TABLE sacs.regentes_view
+    OWNER TO postgres;
+
+------------------------------------------------------------
+
+-- View: sacs.solicitud_empresas_view
+
+-- DROP VIEW sacs.solicitud_empresas_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_empresas_view
+ AS
+ SELECT so.pk_solicitud AS nro_solicitud,
+    upper(em.pk_empresa::text) AS rif_empresa,
+    upper(te.tipo_empresa::text) AS tipo_empresa,
+    upper(ae.activ_economica::text) AS activ_economica,
+    upper(ts.descripcion::text) AS tipo_solicitud,
+    upper(es.descripcion::text) AS estatus_solicitud,
+    upper(ns.descripcion::text) AS nombre_solicitud,
+    upper(ct.nombre::text) AS nombre_categoria,
+    upper(so.observacion::text) AS observacion
+   FROM sacs.solicitud so
+     JOIN sacs.empresa em ON em.pk_empresa::text = so.fk_empresa::text
+     JOIN sacs.actividad_economica ae ON ae.pk_activ_economic = so.fk_activ_economic
+     JOIN sacs.tip_empresa te ON te.pk_tip_empresa = em.fk_tip_empresa
+     JOIN sacs.tipo_solicitud ts ON ts.pk_tipo_solicitud = so.fk_tipo_solicitud
+     JOIN sacs.estatus_solicitud es ON es.pk_estatus_solicitud = so.fk_estatus_solicitud
+     JOIN sacs.nombre_solicitud ns ON ns.pk_nombre_solicitud = so.fk_nombre_solicitud
+     JOIN sacs.detalle_solicitud_categoria ds ON ds.fk_solicitud::text = so.pk_solicitud::text
+     JOIN sacs.categoria ct ON ct.pk_categoria = ds.fk_categoria;
+
+ALTER TABLE sacs.solicitud_empresas_view
+    OWNER TO postgres;
+
+---------------------------------------------------------
+
+-- View: sacs.solicitud_establecimiento_view
+
+-- DROP VIEW sacs.solicitud_establecimiento_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_establecimiento_view
+ AS
+ SELECT dse.fk_solicitud,
+    te.descripcion AS tipo,
+    d.tip_dominio AS dominio,
+    q.nombre_parroquia AS parroquia,
+    q.nombre_municipio AS municipio,
+    q.nombre_estado AS estado,
+    c.direccion,
+    c.telefono_movil,
+    c.telefono_local,
+    c.correo_principal,
+    c.correo_segundario
+   FROM sacs.detalle_solicitud_establecimiento dse
+     JOIN sacs.establecimiento e ON e.pk_establecimiento = dse.fk_establecimiento
+     JOIN sacs.tip_establecimiento te ON te.pk_tip_establecimiento = e.fk_tip_establecimiento
+     JOIN sacs.dominio d ON d.pk_dominio = e.fk_dominio
+     JOIN sacs.catastro c ON c.pk_catastro = e.fk_catastro
+     JOIN sacs.parroquia_mun_estado_view q ON q.pk_parroquia = c.fk_parroquia;
+
+ALTER TABLE sacs.solicitud_establecimiento_view
+    OWNER TO postgres;
+
+-----------------------------------------------------------
+-- View: sacs.solicitud_forma_farmaceutica_view
+
+-- DROP VIEW sacs.solicitud_forma_farmaceutica_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_forma_farmaceutica_view
+ AS
+ SELECT dsf.fk_solicitud,
+    fp.forma_producto AS forma_farmaceutica
+   FROM sacs.detalle_solicitud_forma dsf
+     JOIN sacs.forma_prodcucto fp ON dsf.pk_forma_product = fp.pk_forma_product;
+
+ALTER TABLE sacs.solicitud_forma_farmaceutica_view
+    OWNER TO postgres;
+
+----------------------------------------------------------
+-- View: sacs.solicitud_nombre_categoria_view
+
+-- DROP VIEW sacs.solicitud_nombre_categoria_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_nombre_categoria_view
+ AS
+ SELECT d.fk_solicitud,
+    c.nombre
+   FROM sacs.detalle_solicitud_categoria d
+     JOIN sacs.categoria c ON c.pk_categoria = d.fk_categoria;
+
+ALTER TABLE sacs.solicitud_nombre_categoria_view
+    OWNER TO postgres;
+
+----------------------------------------------------------------
+
+-- View: sacs.solicitud_nombre_producto_view
+
+-- DROP VIEW sacs.solicitud_nombre_producto_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_nombre_producto_view
+ AS
+ SELECT dstp.fk_solicitud,
+    tp.nombre_tip_producto
+   FROM sacs.detalle_solicitud_tipo_producto dstp
+     JOIN sacs.tipo_producto tp ON tp.pk_tip_producto = dstp.fk_tip_producto;
+
+ALTER TABLE sacs.solicitud_nombre_producto_view
+    OWNER TO postgres;
+
+-------------------------------------------------------
+
+-- View: sacs.solicitud_operaciones_view
+
+-- DROP VIEW sacs.solicitud_operaciones_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_operaciones_view
+ AS
+ SELECT dso.fk_solicitud,
+    o.nombre AS operaciones
+   FROM sacs.detalle_solicitud_operaciones dso
+     JOIN sacs.operaciones o ON o.pk_operaciones = dso.fk_operaciones;
+
+ALTER TABLE sacs.solicitud_operaciones_view
+    OWNER TO postgres;
+
+-----------------------------------------------------
+
+-- View: sacs.solicitud_tipo_producto_view
+
+-- DROP VIEW sacs.solicitud_tipo_producto_view;
+
+CREATE OR REPLACE VIEW sacs.solicitud_tipo_producto_view
+ AS
+ SELECT dstp.fk_solicitud,
+    tp.nombre_tip_producto AS tipo_producto
+   FROM sacs.detalle_solicitud_tipo_producto dstp
+     JOIN sacs.tipo_producto tp ON tp.pk_tip_producto = dstp.fk_tip_producto;
+
+ALTER TABLE sacs.solicitud_tipo_producto_view
+    OWNER TO postgres;
+
+---------------------------------------------------------
+
+-- View: sacs.tip_empresa_view
+
+-- DROP VIEW sacs.tip_empresa_view;
+
+CREATE OR REPLACE VIEW sacs.tip_empresa_view
+ AS
+ SELECT te.pk_tip_empresa,
+    te.tipo_empresa
+   FROM sacs.tip_empresa te;
+
+ALTER TABLE sacs.tip_empresa_view
+    OWNER TO postgres;
+
+------------------------------------
+
+-- View: sacs.tipo_dominio_view
+
+-- DROP VIEW sacs.tipo_dominio_view;
+
+CREATE OR REPLACE VIEW sacs.tipo_dominio_view
+ AS
+ SELECT dm.pk_dominio,
+    dm.tip_dominio
+   FROM sacs.dominio dm;
+
+ALTER TABLE sacs.tipo_dominio_view
+    OWNER TO postgres;
+
+----------------------------------------------
+
+-- View: sacs.tipo_establecimiento_view
+
+-- DROP VIEW sacs.tipo_establecimiento_view;
+
+CREATE OR REPLACE VIEW sacs.tipo_establecimiento_view
+ AS
+ SELECT te.pk_tip_establecimiento,
+    te.descripcion
+   FROM sacs.tip_establecimiento te;
+
+ALTER TABLE sacs.tipo_establecimiento_view
+    OWNER TO postgres;
+
+-------------------------------------------------
+
+-- View: sacs.tipo_estatus_view
+
+-- DROP VIEW sacs.tipo_estatus_view;
+
+CREATE OR REPLACE VIEW sacs.tipo_estatus_view
+ AS
+ SELECT es.pk_estatus,
+    es.tipo_estatus
+   FROM sacs.estatus es
+  WHERE es.pk_estatus = ANY (ARRAY[1::numeric, 2::numeric]);
+
+ALTER TABLE sacs.tipo_estatus_view
+    OWNER TO postgres;
+
+------------------------------------------------------
+
+-- View: sacs.usuario_loging_view
+
+-- DROP VIEW sacs.usuario_loging_view;
+
+CREATE OR REPLACE VIEW sacs.usuario_loging_view
+ AS
+ SELECT em.pk_empresa,
+    te.tipo_empresa,
+    ca.correo_principal,
+    us.contrasena,
+    ca.correo_segundario,
+    em.nombre_empresa,
+    ca.pk_catastro,
+    ca.fk_parroquia,
+    es.tipo_estatus,
+    tm.pk_tip_reg_merc,
+    tm.tipo_registro AS registro_mercantil,
+    us.verificado
+   FROM sacs.usuario us
+     JOIN sacs.empresa em ON em.pk_empresa::text = us.fk_empresa::text
+     JOIN sacs.tip_empresa te ON te.pk_tip_empresa = em.fk_tip_empresa
+     JOIN sacs.estatus es ON es.pk_estatus = us.fk_estatus::numeric
+     JOIN sacs.catastro ca ON ca.pk_catastro = em.fk_catastro
+     JOIN sacs.registro_mercantil rm ON rm.pk_reg_mercantil = em.fk_reg_mercantil
+     JOIN sacs.tip_reg_mercantil tm ON tm.pk_tip_reg_merc = rm.fk_tip_reg_mercantil;
+
+ALTER TABLE sacs.usuario_loging_view
+    OWNER TO postgres;
+
+-------------------------------------------------------------

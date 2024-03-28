@@ -1,0 +1,561 @@
+-------------------------
+-- FUNCTION: sacs.registrar_empresas(character varying, character varying, integer, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+
+-- DROP FUNCTION IF EXISTS sacs.registrar_empresas(character varying, character varying, integer, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION sacs.registrar_empresas(
+	i_rif_empresa character varying,
+	i_nombre_empresa character varying,
+	i_tip_empresa integer,
+	i_tlf_empresa character varying,
+	i_tlf_second_empresa character varying,
+	i_email_empresa character varying,
+	i_email_segundario_empresa character varying,
+	i_parroquia_empresa integer,
+	i_direccion_empresa character varying,
+	i_tip_reg_mercantil integer,
+	i_cedula_primer_propietario character varying,
+	i_cargo_primer_propietario character varying,
+	i_parroquia_primer_propietario integer,
+	i_direccion_primer_propietario character varying,
+	i_tlf_primer_propietario character varying,
+	i_tlf_second_primer_propietario character varying,
+	i_email_primer_propietario character varying,
+	i_email_second_primer_propietario character varying,
+	i_cedula_segundo_propietario character varying,
+	i_cargo_segundo_propietario character varying,
+	i_parroquia_segundo_propietario integer,
+	i_direccion_segundo_propietario character varying,
+	i_tlf_segundo_propietario character varying,
+	i_tlf_second_segundo_propietario character varying,
+	i_email_segundo_propietario character varying,
+	i_email_second_segundo_propietario character varying,
+	i_cedula_regente character varying,
+	i_cedula_rep_legal character varying,
+	i_contrasena_usuario character varying,
+	i_primera_pregunta character varying,
+	i_primera_respuesta character varying,
+	i_segunda_pregunta character varying,
+	i_segunda_respuesta character varying,
+	i_tercera_pregunta character varying,
+	i_tercera_respuesta character varying,
+	i_cuarta_pregunta character varying,
+	i_cuarta_respuesta character varying,
+	OUT retorno integer)
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+
+   	V_COUNT_EMPRESA INT;
+    V_MAX_PK_EMPRESA INT;
+   	V_COUNT_EMPRESA_REGENTE INT; --regente
+	V_PK_REPRE_LEGAL INT;--representante
+	V_MAX_PK_CATASTRO_EMPRESA INT;
+	V_MAX_REG_MERCANTIL INT;
+    V_COUNT_RIF INT;
+	V_COUNT_TIP_EMPRESA INT;
+	V_PK_CATASTRO_PRIMER_PROPIETARIO INT;
+	V_PK_CATASTRO_SEGUNDO_PROPIETARIO INT;
+	V_PK_USUARIO INT;
+
+begin
+		   
+	if i_rif_empresa is null or i_rif_empresa = '' then 
+		
+		retorno := 3;--no se esta pasando valor
+					
+		else
+			
+			select count(*) INTO V_COUNT_EMPRESA from "sacs".empresa AS e
+                where e.nombre_empresa = UPPER(i_nombre_empresa);
+            select count(*) INTO V_COUNT_RIF from "sacs".empresa AS er
+                where er.pk_empresa = UPPER(i_rif_empresa);
+               
+               
+             if V_COUNT_EMPRESA > 0 OR V_COUNT_RIF > 0 THEN
+                retorno := 1; --EMPRESA YA EXISTE then 
+             
+             	else
+             		
+             		select count(*) into V_COUNT_EMPRESA_REGENTE from "sacs".empresas_regentes as er  where er.fk_ciudadano = i_cedula_regente;
+             	
+             		--condicion si hay mas de tres regente en otras empresas:
+             		if  V_COUNT_EMPRESA_REGENTE = 3 or V_COUNT_EMPRESA_REGENTE > 2 then 
+             			retorno := 4; -- regente existe en tres empresa - ese es el limite 
+             			else
+             				
+             				if  i_cedula_segundo_propietario is null or i_cedula_segundo_propietario = '' or
+             					i_cargo_segundo_propietario is null or i_cargo_segundo_propietario = '' then
+             					
+             					--representante legal
+								insert into "sacs".representante_legal(pk_representante_legal,fk_ciudadano,fecha_registro,create_date)
+									values (NEXTVAL('"sacs".sq_representante_legal'),i_cedula_rep_legal,CURRENT_DATE,CURRENT_TIMESTAMP);
+								select max(rl.pk_representante_legal) into V_PK_REPRE_LEGAL FROM "sacs".representante_legal as rl;
+							
+								--registro mercantil
+ 								insert into "sacs".registro_mercantil(fk_tip_reg_mercantil,created_date)
+ 									values(i_tip_reg_mercantil,CURRENT_TIMESTAMP);
+ 								SELECT MAX(rm.pk_reg_mercantil) INTO V_MAX_REG_MERCANTIL FROM "sacs".registro_mercantil AS rm;	
+							
+ 								insert into "sacs".catastro(fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+ 									values(i_parroquia_empresa,UPPER(i_direccion_empresa),i_tlf_empresa,i_tlf_second_empresa,UPPER(i_email_empresa),UPPER(i_email_segundario_empresa));
+								SELECT MAX(ct.pk_catastro) INTO V_MAX_PK_CATASTRO_EMPRESA FROM "sacs".catastro AS ct;
+								
+								--empresa
+ 								INSERT INTO "sacs".empresa (pk_empresa,fk_tip_empresa,fk_representante_legal,fk_catastro,fk_reg_mercantil,nombre_empresa,created_date,fk_regente)
+ 									VALUES (UPPER(i_rif_empresa),i_tip_empresa,V_PK_REPRE_LEGAL,V_MAX_PK_CATASTRO_EMPRESA,V_MAX_REG_MERCANTIL,UPPER(i_nombre_empresa),CURRENT_TIMESTAMP,i_cedula_regente);
+ 								
+	
+								--empresa_regente
+							
+								insert into "sacs".empresas_regentes (pk_empresa_regente,fk_empresa,fk_ciudadano)
+									values (NEXTVAL('"sacs".sq_empresa_regente'),UPPER(i_rif_empresa),i_cedula_regente);
+								
+								--INSERT PRIMER PROPIETARIO
+								insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+									values(NEXTVAL('"sacs".sq_catastro'),i_parroquia_primer_propietario,UPPER(i_direccion_primer_propietario),i_tlf_primer_propietario,i_tlf_second_primer_propietario,UPPER(i_email_primer_propietario),UPPER(i_email_second_primer_propietario));
+								SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_PRIMER_PROPIETARIO FROM "sacs".catastro AS cp;
+								
+								insert into "sacs".propietario(pk_propietario,fk_ciudadano,fk_catastro,fk_empresa,cargo,created_date)
+									values(NEXTVAL('"sacs".sq_propietario'),i_cedula_primer_propietario,V_PK_CATASTRO_PRIMER_PROPIETARIO,UPPER(i_rif_empresa),i_cargo_primer_propietario,CURRENT_TIMESTAMP);
+						
+								
+								--INSERT TABLA USUARIO
+								insert into "sacs".usuario(pk_usuario,fk_empresa,fk_estatus,cedula,email,contrasena,verificado,fecha_registro,create_date)
+									values(NEXTVAL('"sacs".sq_usuario'),UPPER(i_rif_empresa),1,i_cedula_primer_propietario,UPPER(i_email_empresa),i_contrasena_usuario,1,CURRENT_DATE,CURRENT_TIMESTAMP);
+								SELECT MAX(ua.pk_usuario) INTO V_PK_USUARIO FROM "sacs".usuario AS ua;
+								
+								---INSERT TABLA USUARIOS_PREGUNTAS
+								INSERT INTO sacs.usuarios_preguntas(
+									fk_usuario, primera_pregunta, primera_respuesta, segunda_pregunta, segunda_respuesta, tercera_pregunta, tercera_respuesta, cuarta_pregunta, cuarta_respuesta)
+									values(V_PK_USUARIO,UPPER(i_primera_pregunta),UPPER(i_primera_respuesta),UPPER(i_segunda_pregunta),UPPER(i_segunda_respuesta),UPPER(i_tercera_pregunta),UPPER(i_tercera_respuesta),UPPER(i_cuarta_pregunta),UPPER(i_cuarta_respuesta));
+							
+             					
+								
+								retorno := 2; --registro de empresa exitoso
+							
+							  else
+							  	---SI hay  DOS PROPIETARIOS
+							  	
+	             				---representante legal
+								insert into "sacs".representante_legal(pk_representante_legal,fk_ciudadano,fecha_registro,create_date)
+									values (NEXTVAL('"sacs".sq_representante_legal'),i_cedula_rep_legal,CURRENT_DATE,CURRENT_TIMESTAMP);
+								SELECT MAX(rl.pk_representante_legal) INTO V_PK_REPRE_LEGAL FROM "sacs".representante_legal as rl;
+							
+								--registro mercantil
+								insert into "sacs".registro_mercantil(pk_reg_mercantil,fk_tip_reg_mercantil,created_date)
+									values(NEXTVAL('"sacs".sq_registro_mercantil'),i_tip_reg_mercantil,CURRENT_TIMESTAMP);
+								SELECT MAX(rm.pk_reg_mercantil) INTO V_MAX_REG_MERCANTIL FROM "sacs".registro_mercantil AS rm;	
+							
+								--insert empresa
+								insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+									values(NEXTVAL('"sacs".sq_catastro'),i_parroquia_empresa,UPPER(i_direccion_empresa),i_tlf_empresa,i_tlf_second_empresa,UPPER(i_email_empresa),UPPER(i_email_segundario_empresa));
+								SELECT MAX(ct.pk_catastro) INTO V_MAX_PK_CATASTRO_EMPRESA FROM "sacs".catastro AS ct;
+								
+								--empresa
+ 								INSERT INTO "sacs".empresa (pk_empresa,fk_tip_empresa,fk_representante_legal,fk_catastro,fk_reg_mercantil,nombre_empresa,created_date,fk_regente)
+ 									VALUES (UPPER(i_rif_empresa),i_tip_empresa,V_PK_REPRE_LEGAL,V_MAX_PK_CATASTRO_EMPRESA,V_MAX_REG_MERCANTIL,UPPER(i_nombre_empresa),CURRENT_TIMESTAMP,i_cedula_regente);
+ 								
+	
+-- 								--empresa_regente
+							
+								insert into "sacs".empresas_regentes (pk_empresa_regente,fk_empresa,fk_ciudadano)
+									values (NEXTVAL('"sacs".sq_empresa_regente'),UPPER(i_rif_empresa),i_cedula_regente);
+								
+								--INSERT PRIMER PROPIETARIO
+								insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+									values(NEXTVAL('"sacs".sq_catastro'),i_parroquia_primer_propietario,UPPER(i_direccion_primer_propietario),i_tlf_primer_propietario,i_tlf_second_primer_propietario,UPPER(i_email_primer_propietario),UPPER(i_email_second_primer_propietario));
+								SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_PRIMER_PROPIETARIO FROM "sacs".catastro AS cp;
+								
+								insert into "sacs".propietario(pk_propietario,fk_ciudadano,fk_catastro,fk_empresa,cargo,created_date)
+									values(NEXTVAL('"sacs".sq_propietario'),i_cedula_primer_propietario,V_PK_CATASTRO_PRIMER_PROPIETARIO,UPPER(i_rif_empresa),i_cargo_primer_propietario,CURRENT_TIMESTAMP);
+						
+								--INSERT SEGUNDO PROPIETARIO
+								insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+									values(NEXTVAL('"sacs".sq_catastro'),i_parroquia_segundo_propietario,UPPER(i_direccion_segundo_propietario),i_tlf_segundo_propietario,i_tlf_second_segundo_propietario,UPPER(i_email_segundo_propietario),UPPER(i_email_second_segundo_propietario));
+								SELECT MAX(cl.pk_catastro) INTO V_PK_CATASTRO_SEGUNDO_PROPIETARIO FROM "sacs".catastro AS cl;
+								
+								insert into "sacs".propietario(pk_propietario,fk_ciudadano,fk_catastro,fk_empresa,cargo,created_date)
+									values(NEXTVAL('"sacs".sq_propietario'),i_cedula_segundo_propietario,V_PK_CATASTRO_SEGUNDO_PROPIETARIO,UPPER(i_rif_empresa),i_cargo_segundo_propietario,CURRENT_TIMESTAMP);
+	             			
+								
+						
+								--INSERT TABLA USUARIO
+								insert into "sacs".usuario(pk_usuario,fk_empresa,fk_estatus,cedula,email,contrasena,verificado,fecha_registro,create_date)
+									values(NEXTVAL('"sacs".sq_usuario'),UPPER(i_rif_empresa),1,i_cedula_primer_propietario,UPPER(i_email_empresa),i_contrasena_usuario,1,CURRENT_DATE,CURRENT_TIMESTAMP);
+								SELECT MAX(ua.pk_usuario) INTO V_PK_USUARIO FROM "sacs".usuario AS ua;
+									
+								---INSERT TABLA USUARIOS_PREGUNTAS
+								INSERT INTO sacs.usuarios_preguntas(
+									fk_usuario, primera_pregunta, primera_respuesta, segunda_pregunta, segunda_respuesta, tercera_pregunta, tercera_respuesta, cuarta_pregunta, cuarta_respuesta)
+									values(V_PK_USUARIO,UPPER(i_primera_pregunta),UPPER(i_primera_respuesta),UPPER(i_segunda_pregunta),UPPER(i_segunda_respuesta),UPPER(i_tercera_pregunta),UPPER(i_tercera_respuesta),UPPER(i_cuarta_pregunta),UPPER(i_cuarta_respuesta));
+								
+	             				
+								retorno := 2; --registro de empresa exitoso	
+							  
+							
+							end if;
+             				
+             				
+             		end if;
+             		
+				
+             end if;
+		
+	end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.registrar_empresas(character varying, character varying, integer, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+    OWNER TO postgres;
+
+
+--------------------------------------------
+
+-- FUNCTION: sacs.register_solicitud_empresa(character varying, integer, integer, integer, integer)
+
+-- DROP FUNCTION IF EXISTS sacs.register_solicitud_empresa(character varying, integer, integer, integer, integer);
+
+CREATE OR REPLACE FUNCTION sacs.register_solicitud_empresa(
+	i_rif_empresa character varying,
+	i_tipo_solicitud integer,
+	i_nombre_solicitud integer,
+	i_area_empresa integer,
+	i_activ_economic_empresa integer,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+	v_catastro_empresa int;
+	v_regente_empresa varchar;
+   v_solicitud varchar;
+   v_estatus_solicitud numeric;
+   NUM_SOLICITUD VARCHAR;
+
+begin
+		   
+		 if i_rif_empresa is null or i_rif_empresa = '' then 
+					retorno := 3;--no se esta pasando valor
+				else 
+					--estatus de solicitud por defecto:
+				  select es.pk_estatus_solicitud into v_estatus_solicitud from "sacs".estatus_solicitud es 
+					where es.descripcion = 'INSERTADA';
+					
+					--insert aare y activ_economic
+					update sacs.empresa
+						set fk_area  = i_area_empresa,
+							fk_activ_economic  = i_activ_economic_empresa
+						where pk_empresa  = i_rif_empresa;
+
+					--obtener datos de empresa 
+					select em.fk_catastro  into v_catastro_empresa from sacs.empresa as em 
+						where em.pk_empresa = i_rif_empresa;
+					select er.fk_regente  into v_regente_empresa from sacs.empresa as er 
+						where er.pk_empresa = i_rif_empresa;
+
+					--nro de solicitud generado por catastro y area de la empresa:
+					select "sacs".fun_num_solicitud (v_catastro_empresa,i_area_empresa) into NUM_SOLICITUD;
+					
+					
+					---INSERT A TABLA SOLICITUD 
+				   insert into "sacs".solicitud (pk_solicitud,fk_empresa, fk_activ_economic, fk_tipo_solicitud,fk_estatus_solicitud,fk_nombre_solicitud ,fecha_creacion,fk_regente)
+										values(NUM_SOLICITUD,i_rif_empresa, i_activ_economic_empresa,i_tipo_solicitud,v_estatus_solicitud,i_nombre_solicitud,current_date,v_regente_empresa);
+
+				   select max(s.pk_solicitud) into v_solicitud from "sacs".solicitud as s 
+					where s.fk_empresa = i_rif_empresa;
+					--and s.fk_tipo_solicitud  = i_tipo_solicitud
+					--and s.fk_estatus_solicitud = v_estatus_solicitud
+					--and s.fk_regente = i_regente_empresa; 
+					
+					--obtener NRO DE SOLICITUD
+					
+					retorno := 2;--solicitud registrada
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.register_solicitud_empresa(character varying, integer, integer, integer, integer)
+    OWNER TO postgres;
+
+----------------------------------------------------
+
+-- FUNCTION: sacs.register_detalle_solicitud_productos(character varying, numeric)
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_productos(character varying, numeric);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_productos(
+	i_rif_empresa character varying,
+	i_tip_producto_empresa numeric,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+	v_solicitud_empresa varchar;
+begin
+		   
+		 	--si no hay categoria 
+					if i_rif_empresa is null or i_rif_empresa = ''  then
+						retorno := 3; --no inserta nada porque la categoria no tiene operaciones
+					   else
+					   
+					   --obtener nro_solicitud 
+					  	select s.pk_solicitud into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+					   
+					  		--insert detalle de solicitud de OPERACIONES
+					   insert into sacs.detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto,created_date)
+	   						values(v_solicitud_empresa, i_tip_producto_empresa,CURRENT_TIMESTAMP);
+						retorno :=2;-- registro establecimiento exito
+						
+						
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.register_detalle_solicitud_productos(character varying, numeric)
+    OWNER TO postgres;
+
+
+----------------------------------------------
+
+-- FUNCTION: sacs.register_detalle_solicitud_operaciones(character varying, integer, integer)
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_operaciones(character varying, integer, integer);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_operaciones(
+	i_rif_empresa character varying,
+	i_categoria_empresa integer,
+	i_operaciones_empresa integer,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+	v_solicitud_empresa varchar;
+begin
+		   
+		 	--si no hay categoria 
+					if  i_rif_empresa is null or i_rif_empresa = '' then
+						retorno := 3; --no inserta nada porque la categoria no tiene operaciones
+					   else
+					   
+					   --obtener nro_solicitud 
+					  	select s.pk_solicitud into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+							
+					  		--insert detalle de solicitud de OPERACIONES
+					   insert into sacs.detalle_solicitud_operaciones (fk_solicitud, fk_categoria,fk_operaciones,created_date)
+	   						values(v_solicitud_empresa, i_categoria_empresa, i_operaciones_empresa,CURRENT_TIMESTAMP);
+						
+						retorno :=2;-- registro establecimiento exito
+						
+						
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.register_detalle_solicitud_operaciones(character varying, integer, integer)
+    OWNER TO postgres;
+
+----------------------------------------------------
+
+-- FUNCTION: sacs.register_detalle_solicitud_forma(character varying, integer)
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_forma(character varying, integer);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_forma(
+	i_rif_empresa character varying,
+	i_forma_producto_empresa integer,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+	v_solicitud_empresa varchar;
+begin
+		   
+		 	--si no hay categoria 
+					if i_rif_empresa is null or i_rif_empresa = '' then
+						retorno := 3; --no inserta nada porque la categoria no tiene operaciones
+					   else
+					   
+					   --obtener nro_solicitud 
+					  	select s.pk_solicitud into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+							
+					  		--insert detalle de solicitud de OPERACIONES
+					   insert into sacs.detalle_solicitud_forma (fk_solicitud, pk_forma_product,created_date)
+	   						values(v_solicitud_empresa, i_forma_producto_empresa,CURRENT_TIMESTAMP);
+						retorno :=2;-- registro establecimiento exito
+						
+						
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.register_detalle_solicitud_forma(character varying, integer)
+    OWNER TO postgres;
+
+-----------------------------------------------------
+
+-- FUNCTION: sacs.register_detalle_solicitud_establecimiento(character varying, integer, integer, integer, character varying, character varying, character varying, character varying, character varying, character varying, integer)
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_establecimiento(character varying, integer, integer, integer, character varying, character varying, character varying, character varying, character varying, character varying, integer);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_establecimiento(
+	i_rif_empresa character varying,
+	i_tip_establecimiento integer,
+	i_dominio_establecimiento integer,
+	i_parroquia_establecimiento integer,
+	i_direccion_establecimiento character varying,
+	i_tlf_establecimiento character varying,
+	i_tlf_dos_establecimiento character varying,
+	i_email_establecimiento character varying,
+	i_email_dos_establecimiento character varying,
+	i_observ_establecimiento character varying,
+	i_estatus_establecimiento integer,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+declare
+
+   v_solicitud_empresa varchar;
+   v_pk_establecimiento numeric;
+   v_catastro_establecimiento numeric;
+
+begin
+		   
+		 	--si no hay categoria 
+					if i_rif_empresa is null or i_rif_empresa = '' then 
+						retorno := 3;
+					  else   
+					  	
+						--obtener nro_solicitud 
+					  	select s.pk_solicitud into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+					  
+					  
+						--insert establecimineto 
+						insert into "sacs".catastro (pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+							values (nextval('"sacs".sq_catastro'),i_parroquia_establecimiento,i_direccion_establecimiento,i_tlf_establecimiento,i_tlf_dos_establecimiento,
+									i_email_establecimiento,i_email_dos_establecimiento);
+						select max(ct.pk_catastro) into v_catastro_establecimiento from "sacs".catastro as ct;
+
+						insert into "sacs".establecimiento (pk_establecimiento,fk_empresa,fk_tip_establecimiento,fk_dominio,fk_catastro,observacion,created_date,fk_estatus)
+						 values (nextval('"sacs".sq_establecimiento'),i_rif_empresa,i_tip_establecimiento,i_dominio_establecimiento,v_catastro_establecimiento,i_observ_establecimiento,CURRENT_TIMESTAMP,i_estatus_establecimiento);
+						select es.pk_establecimiento into v_pk_establecimiento from "sacs".establecimiento as es where es.fk_empresa = i_rif_empresa;
+		
+						insert into "sacs".detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+								values(v_solicitud_empresa, v_pk_establecimiento);
+						
+						retorno :=2;-- registro establecimiento exito
+					
+			end if;
+   	  
+	  
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.register_detalle_solicitud_establecimiento(character varying, integer, integer, integer, character varying, character varying, character varying, character varying, character varying, character varying, integer)
+    OWNER TO postgres;
+------------------------------------------------------
+
+--------------------------
+
+-- FUNCTION: sacs.register_detalle_solicitud_categoria(character varying, integer)
+
+-- DROP FUNCTION IF EXISTS sacs.register_detalle_solicitud_categoria(character varying, integer);
+
+CREATE OR REPLACE FUNCTION sacs.register_detalle_solicitud_categoria(
+	i_rif_empresa character varying,
+	i_categoria_empresa integer,
+	OUT retorno character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+ --DEFINO EL CUERPO DE MI PROCEDURE
+declare
+	v_solicitud_empresa varchar;
+begin
+		   
+		 	--si no hay categoria 
+					if i_categoria_empresa is null or i_rif_empresa = '' or
+						i_rif_empresa is null then 
+						retorno := 3; --no inserta nada porque la actividad no tiene categoria
+					   else
+					   	
+					   --obtener nro_solicitud 
+					  	select s.pk_solicitud into v_solicitud_empresa from sacs.solicitud as s
+							where s.fk_empresa = i_rif_empresa;
+					  		--insert detalle de solicitud de categoria
+					   insert into "sacs".detalle_solicitud_categoria (fk_solicitud, fk_categoria,created_date)
+							 values(v_solicitud_empresa, i_categoria_empresa,CURRENT_TIMESTAMP);
+
+						retorno :=2;-- registro establecimiento exito
+						
+						---si son varias categorias con varias operacion se incluye 
+						--el insert de desatalles_solicitud_operaciones
+					
+			end if;
+   	  
+	  
+end;
+
+$BODY$;
+
+ALTER FUNCTION sacs.register_detalle_solicitud_categoria(character varying, integer)
+    OWNER TO postgres;
+
+-------------------------------------------------------------------------
+

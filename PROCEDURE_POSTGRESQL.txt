@@ -1,0 +1,849 @@
+--FUNCITON POSTGRESQL
+
+--INSERT_EMPRESA_USUARIO_FI
+
+select * from sacs.insert_empresa_usuario_reg_fi('J-regente', 'empresaregente', '3', 'empresaregent@gmail.com', 'empresaregent2@gmail.com', 1338, 'direccion empresa regente', '123', '369', 1, 2, 'V006662436', 'V027309277', 'i_profesion', 'matricula123', 1341, 'i_direccion_regente', '589', '987', 'i_email_regente', 'i_email_second_regente', 1, 'V027588805', 'cargoproreg', 1342, 'i_direccion_propietario', '222', '356', 'i_email_propietario', 'i_email_second_propietario', 1, '123', 1, 'color', 'verde', 'bebida', 'jugo', 'mascota', 'perros', 'comida', 'pizza')
+
+-- FUNCTION: sacs.insert_empresa_usuario_reg_fi(character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, integer, integer, integer, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+
+-- DROP FUNCTION IF EXISTS sacs.insert_empresa_usuario_reg_fi(character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, integer, integer, integer, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying);
+
+CREATE OR REPLACE FUNCTION sacs.insert_empresa_usuario_reg_fi(
+	i_rif_empresa character varying,
+	i_nombre_empresa character varying,
+	i_tip_empresa character varying,
+	i_email_empresa character varying,
+	i_email_second_empresa character varying,
+	i_parroquia_empresa integer,
+	i_direccion_empresa character varying,
+	i_tlf_empresa integer,
+	i_tlf_second_empresa integer,
+	i_area_empresa integer,
+	i_activ_economic_empresa integer,
+	i_cedula_rep_legal character varying,
+	i_cedula_regente character varying,
+	i_profesion_regente character varying,
+	i_nro_matricula_regente character varying,
+	i_parroquia_regente integer,
+	i_direccion_regente character varying,
+	i_tlf_regente character varying,
+	i_tlf_second_regente character varying,
+	i_email_regente character varying,
+	i_email_second_regente character varying,
+	i_tip_reg_mercantil integer,
+	i_cedula_propietario character varying,
+	i_cargo_propietario character varying,
+	i_parroquia_propietario integer,
+	i_direccion_propietario character varying,
+	i_tlf_propietario character varying,
+	i_tlf_second_propietario character varying,
+	i_email_propietario character varying,
+	i_email_second_propietario character varying,
+	i_estatus_usuario integer,
+	i_contrasena_usuario character varying,
+	i_verificado_usuario integer,
+	i_primera_pregunta character varying,
+	i_primera_respuesta character varying,
+	i_segunda_pregunta character varying,
+	i_segunda_respuesta character varying,
+	i_tercera_pregunta character varying,
+	i_tercera_respuesta character varying,
+	i_cuarta_pregunta character varying,
+	i_cuarta_respuesta character varying,
+	OUT retorno integer)
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+ --DEFINO EL CUERPO DE MI PROCEDURE
+
+DECLARE --VARIABLES
+    V_COUNT_EMPRESA INT;
+    V_COUNT_MAX_EMPRESA INT;
+	V_COUNT_REPRE_LEGAL INT;
+    V_COUNT_RIF INT;
+	V_COUNT_TIP_EMPRESA INT;
+	V_PK_TIP_EMPRESA INT;
+	V_MAX_REG_MERCANTIL INT;
+	V_MAX_PK_CATASTRO INT;
+	V_NEW_TIP_EMPRESA INT;
+	V_PK_CATASTRO_PROPIETARIO INT;
+	V_PK_CATASTRO_REGENTE INT;
+	V_PK_REGENTE INT;
+	V_MAX_PK_EMPRESA VARCHAR;
+	V_PK_USUARIO INT;
+	
+BEGIN
+    -- Lógica del procedimiento
+
+    IF I_NOMBRE_EMPRESA IS NULL OR I_NOMBRE_EMPRESA = '' OR
+      I_RIF_EMPRESA IS NULL OR I_RIF_EMPRESA = '' THEN 
+
+        RETORNO := 3; -- NO SE ESTAN PASANDO PARAMETROS 
+
+        ELSE 
+
+            SELECT COUNT(*) INTO V_COUNT_EMPRESA FROM "sacs".empresa AS e
+                WHERE e.nombre_empresa = UPPER(I_NOMBRE_EMPRESA);
+            SELECT COUNT(*) INTO V_COUNT_RIF FROM "sacs".empresa AS er
+                WHERE er.pk_empresa = UPPER(I_RIF_EMPRESA);
+
+            IF  V_COUNT_EMPRESA > 0 OR V_COUNT_RIF > 0 THEN
+                RETORNO := 1; --EMPRESA YA EXISTE
+                
+            ELSE
+			
+				SELECT COUNT(*) INTO V_COUNT_TIP_EMPRESA FROM SACS.tip_empresa AS te
+					WHERE te.tipo_empresa = UPPER(I_TIP_EMPRESA);
+				SELECT te.pk_tip_empresa INTO V_PK_TIP_EMPRESA FROM SACS.tip_empresa AS te
+					WHERE te.tipo_empresa = UPPER(I_TIP_EMPRESA);
+			
+				IF V_COUNT_TIP_EMPRESA > 0 THEN
+				
+					---representante legal
+					insert into "sacs".representante_legal(pk_representante_legal,fk_ciudadano,fecha_registro,create_date)
+						values (NEXTVAL('"sacs".sq_representante_legal'),I_CEDULA_REP_LEGAL,CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(rl.pk_representante_legal) INTO V_COUNT_REPRE_LEGAL FROM "sacs".representante_legal AS rl;
+					
+					--INSERT REGENTE
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_REGENTE,UPPER(I_DIRECCION_REGENTE),I_TLF_REGENTE,I_TLF_SECOND_REGENTE,UPPER(I_EMAIL_REGENTE),UPPER(I_EMAIL_SECOND_REGENTE));
+					SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_REGENTE FROM "sacs".catastro AS cp;
+					
+					insert into "sacs".regente(pk_regente,fk_ciudadano,fk_catastro,profesion,nro_matricula,created_date)
+						values(NEXTVAL('"sacs".sq_regente'),I_CEDULA_REGENTE,V_PK_CATASTRO_REGENTE,UPPER(I_PROFESION_REGENTE),UPPER(I_NRO_MATRICULA_REGENTE),CURRENT_TIMESTAMP);
+					SELECT MAX(rg.pk_regente) INTO V_PK_REGENTE FROM "sacs".regente AS rg;
+
+					--registro mercantil
+					insert into "sacs".registro_mercantil(pk_reg_mercantil,fk_tip_reg_mercantil,created_date)
+						values(NEXTVAL('"sacs".sq_registro_mercantil'),I_TIP_REG_MERCANTIL,CURRENT_TIMESTAMP);
+					SELECT MAX(rm.pk_reg_mercantil) INTO V_MAX_REG_MERCANTIL FROM "sacs".registro_mercantil AS rm;	
+					
+					--insert empresa
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_EMPRESA,UPPER(I_DIRECCION_EMPRESA),I_TLF_EMPRESA,I_TLF_SECOND_EMPRESA,UPPER(I_EMAIL_EMPRESA),UPPER(I_EMAIL_SECOND_EMPRESA));
+					SELECT MAX(ct.pk_catastro) INTO V_MAX_PK_CATASTRO FROM "sacs".catastro AS ct;
+					
+					INSERT INTO "sacs".empresa (pk_empresa,fk_tip_empresa,fk_representante_legal,fk_regente,fk_catastro,fk_reg_mercantil,fk_area,fk_activ_economic,nombre_empresa,fecha_registro,crate_date)
+						VALUES (UPPER(I_RIF_EMPRESA),V_PK_TIP_EMPRESA,V_COUNT_REPRE_LEGAL,V_PK_REGENTE,V_MAX_PK_CATASTRO,V_MAX_REG_MERCANTIL,I_AREA_EMPRESA,I_ACTIV_ECONOMIC_EMPRESA,UPPER(I_NOMBRE_EMPRESA),CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(es.pk_empresa) INTO V_MAX_PK_EMPRESA FROM "sacs".empresa AS es;
+					
+					--update regente (incluir empresa a regente)
+					
+					update "sacs".regente 
+						set fk_empresa = I_RIF_EMPRESA
+					where pk_regente = V_PK_REGENTE;
+					
+					--INSERT PROPIETARIO
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_PROPIETARIO,UPPER(I_DIRECCION_PROPIETARIO),I_TLF_PROPIETARIO,I_TLF_SECOND_PROPIETARIO,UPPER(I_EMAIL_PROPIETARIO),UPPER(I_EMAIL_SECOND_PROPIETARIO));
+					SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_PROPIETARIO FROM "sacs".catastro AS cp;
+					
+					insert into "sacs".propietario(pk_propietario,fk_ciudadano,fk_catastro,fk_empresa,cargo,created_date)
+						values(NEXTVAL('"sacs".sq_propietario'),I_CEDULA_PROPIETARIO,V_PK_CATASTRO_PROPIETARIO,I_RIF_EMPRESA,I_CARGO_PROPIETARIO,CURRENT_TIMESTAMP);
+					
+					--INSERT TABLA USUARIO
+					insert into "sacs".usuario(pk_usuario,fk_empresa,fk_estatus,cedula,email,contrasena,verificado,fecha_registro,create_date)
+						values(NEXTVAL('"sacs".sq_usuario'),I_RIF_EMPRESA,I_ESTATUS_USUARIO,I_CEDULA_PROPIETARIO,UPPER(I_EMAIL_PROPIETARIO),I_CONTRASENA_USUARIO,I_VERIFICADO_USUARIO,CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(ua.pk_usuario) INTO V_PK_USUARIO FROM "sacs".usuario AS ua;
+					
+					
+					---INSERT TABLA USUARIOS_PREGUNTAS
+					INSERT INTO sacs.usuarios_preguntas(
+						fk_usuario, primera_pregunta, primera_respuesta, segunda_pregunta, segunda_respuesta, tercera_pregunta, tercera_respuesta, cuarta_pregunta, cuarta_respuesta)
+						values(V_PK_USUARIO,I_PRIMERA_PREGUNTA,I_PRIMERA_RESPUESTA,I_SEGUNDA_PREGUNTA,I_SEGUNDA_RESPUESTA,I_TERCERA_PREGUNTA,I_TERCERA_RESPUESTA,I_CUARTA_PREGUNTA,I_CUARTA_RESPUESTA);
+					
+					RETORNO := 2; --EMPRESA REGISTRADA EXITOZAMENTE
+
+				  ELSE
+				  	
+					---representante legal
+					insert into "sacs".representante_legal(pk_representante_legal,fk_ciudadano,fecha_registro,create_date)
+						values (NEXTVAL('"sacs".sq_representante_legal'),I_CEDULA_REP_LEGAL,CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(rl.pk_representante_legal) INTO V_COUNT_REPRE_LEGAL FROM "sacs".representante_legal AS rl;	
+
+					--INSERT REGENTE
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_REGENTE,UPPER(I_DIRECCION_REGENTE),I_TLF_REGENTE,I_TLF_SECOND_REGENTE,UPPER(I_EMAIL_REGENTE),UPPER(I_EMAIL_SECOND_REGENTE));
+					SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_REGENTE FROM "sacs".catastro AS cp;
+					
+					insert into "sacs".regente(pk_regente,fk_ciudadano,fk_catastro,profesion,nro_matricula,created_date)
+						values(NEXTVAL('"sacs".sq_regente'),I_CEDULA_REGENTE,V_PK_CATASTRO_REGENTE,UPPER(I_PROFESION_REGENTE),UPPER(I_NRO_MATRICULA_REGENTE),CURRENT_TIMESTAMP);
+					SELECT MAX(rg.pk_regente) INTO V_PK_REGENTE FROM "sacs".regente AS rg;
+
+					--registro mercantil
+					insert into "sacs".registro_mercantil(pk_reg_mercantil,fk_tip_reg_mercantil,created_date)
+						values(NEXTVAL('"sacs".sq_registro_mercantil'),I_TIP_REG_MERCANTIL,CURRENT_TIMESTAMP);
+					SELECT MAX(rm.pk_reg_mercantil) INTO V_MAX_REG_MERCANTIL FROM "sacs".registro_mercantil AS rm;	
+					
+					--insert empresa
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_EMPRESA,UPPER(I_DIRECCION_EMPRESA),I_TLF_EMPRESA,I_TLF_SECOND_EMPRESA,UPPER(I_EMAIL_EMPRESA),UPPER(I_EMAIL_SECOND_EMPRESA));
+					SELECT MAX(ct.pk_catastro) INTO V_MAX_PK_CATASTRO FROM "sacs".catastro AS ct;
+					
+					---insert tabla EMPRESA
+					--insert tabla nuevo tip_empresa
+					insert into "sacs".tip_empresa(pk_tip_empresa,tipo_empresa,created_date)
+						values(NEXTVAL('"sacs".sq_tip_empresa'),UPPER(I_TIP_EMPRESA),CURRENT_TIMESTAMP);
+					SELECT MAX(tn.pk_tip_empresa) INTO V_NEW_TIP_EMPRESA FROM "sacs".tip_empresa AS tn;
+					
+					
+					INSERT INTO "sacs".empresa (pk_empresa,fk_tip_empresa,fk_representante_legal,fk_regente,fk_catastro,fk_reg_mercantil,fk_area,fk_activ_economic,nombre_empresa,fecha_registro,crate_date)
+						VALUES (I_RIF_EMPRESA,V_NEW_TIP_EMPRESA,V_COUNT_REPRE_LEGAL,V_PK_REGENTE,V_MAX_PK_CATASTRO,V_MAX_REG_MERCANTIL,I_AREA_EMPRESA,I_ACTIV_ECONOMIC_EMPRESA,UPPER(I_NOMBRE_EMPRESA),CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(es.pk_empresa) INTO V_MAX_PK_EMPRESA FROM "sacs".empresa AS es;
+					
+					--update regente (incluir empresa a regente)
+					
+					update "sacs".regente
+						set fk_empresa = I_RIF_EMPRESA
+					where pk_regente = V_PK_REGENTE;
+					
+					--INSERT PROPIETARIO
+					insert into "sacs".catastro(pk_catastro,fk_parroquia,direccion,telefono_movil,telefono_local,correo_principal,correo_segundario)
+						values(NEXTVAL('"sacs".sq_catastro'),I_PARROQUIA_PROPIETARIO,UPPER(I_DIRECCION_PROPIETARIO),I_TLF_PROPIETARIO,I_TLF_SECOND_PROPIETARIO,UPPER(I_EMAIL_PROPIETARIO),UPPER(I_EMAIL_SECOND_PROPIETARIO));
+					SELECT MAX(cp.pk_catastro) INTO V_PK_CATASTRO_PROPIETARIO FROM "sacs".catastro AS cp;
+					
+					insert into "sacs".propietario(pk_propietario,fk_ciudadano,fk_catastro,fk_empresa,cargo,created_date)
+						values(NEXTVAL('"sacs".sq_propietario'),I_CEDULA_PROPIETARIO,V_PK_CATASTRO_PROPIETARIO,UPPER(I_RIF_EMPRESA),UPPER(I_CARGO_PROPIETARIO),CURRENT_TIMESTAMP);
+					
+					
+					--INSERT TABLA USUARIO
+					insert into "sacs".usuario(pk_usuario,fk_empresa,fk_estatus,cedula,email,contrasena,verificado,fecha_registro,create_date)
+						values(NEXTVAL('"sacs".sq_usuario'),UPPER(I_RIF_EMPRESA),I_ESTATUS_USUARIO,I_CEDULA_PROPIETARIO,UPPER(I_EMAIL_PROPIETARIO),I_CONTRASENA_USUARIO,I_VERIFICADO_USUARIO,CURRENT_DATE,CURRENT_TIMESTAMP);
+					SELECT MAX(ua.pk_usuario) INTO V_PK_USUARIO FROM "sacs".usuario AS ua;
+					
+					---INSERT TABLA USUARIOS_PREGUNTAS
+					INSERT INTO sacs.usuarios_preguntas(
+						fk_usuario, primera_pregunta, primera_respuesta, segunda_pregunta, segunda_respuesta, tercera_pregunta, tercera_respuesta, cuarta_pregunta, cuarta_respuesta)
+						values(V_PK_USUARIO,UPPER(I_PRIMERA_PREGUNTA),UPPER(I_PRIMERA_RESPUESTA),UPPER(I_SEGUNDA_PREGUNTA),UPPER(I_SEGUNDA_RESPUESTA),UPPER(I_TERCERA_PREGUNTA),UPPER(I_TERCERA_RESPUESTA),UPPER(I_CUARTA_PREGUNTA),UPPER(I_CUARTA_RESPUESTA));
+															
+					RETORNO := 2; --EMPRESA REGISTRADA EXITOZAMENTE
+				  
+				
+				END IF;
+				
+                
+            END IF;
+
+    END IF;
+	
+
+   
+   
+END;
+$BODY$;
+
+ALTER FUNCTION sacs.insert_empresa_usuario_reg_fi(character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, integer, integer, integer, character varying, character varying, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, character varying, integer, character varying, character varying, character varying, character varying, character varying, integer, character varying, integer, character varying, character varying, character varying, character varying, character varying, character varying, character varying, character varying)
+    OWNER TO postgres;
+
+
+
+-------------------------------------------------------------
+---------------PROCEDURE SOLICITUD EMPRESA
+
+		
+select * from sacs.registrar_solicitud_v2(1, 2, 11, 6, 'j-rege12', 5, 16, 6, null, null, null, null, 'observacion de prueba solicitud')
+
+
+-- FUNCTION: sacs.registrar_solicitud_v2(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, integer, integer, character varying)
+
+-- DROP FUNCTION IF EXISTS sacs.registrar_solicitud_v2(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, integer, integer, character varying);
+
+CREATE OR REPLACE FUNCTION sacs.registrar_solicitud_v2(
+	tipo_solicitud integer,
+	nombre_sol integer,
+	act_economica integer,
+	categoria integer,
+	empresa character varying,
+	regente integer,
+	i_catastro integer,
+	i_area integer,
+	forma integer,
+	operacion integer,
+	tipo_producto integer,
+	establecimiento integer,
+	observacion_soli character varying,
+	OUT retorno integer)
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+declare
+   v_solicitud varchar;
+   v_estatus numeric;
+   v_dir_contraloria varchar;
+   
+   	V_ESTADO VARCHAR;
+	V_AV_COORD VARCHAR;
+	V_COUNT_SOL VARCHAR;
+	V_NUM_SOL VARCHAR;
+	V_ANO_MES VARCHAR;
+	V_NUM_SOLICITUD  VARCHAR;
+	V_CORRE  VARCHAR;
+	
+	NUM_SOLICITUD VARCHAR;
+	
+begin
+		   
+   if tipo_solicitud = 1 then
+   		
+		if forma is null and operacion is null 
+			and tipo_producto is null and establecimiento is null then 
+		
+			--select dc.abreviatura into v_dir_contraloria from sacs.direcciones_contraloria as dc
+				--where dc.pk_direccion = 1;
+
+			  if empresa is null or empresa = '' then 
+					retorno := 3;--no se esta pasando valor
+				else 
+
+				  select es.pk_estatus_solicitud into v_estatus from "sacs".estatus_solicitud es 
+					where es.descripcion = 'INSERTADA';
+					
+					--- GENERAR NRO DE SOLICITUD 
+					
+					      select dc.abreviatura into V_AV_COORD from sacs.coordinacion_area ca 
+							inner join sacs.coordinacion n on n.pk_coordinacion =ca.fk_coordinacion 
+							inner join sacs.direcciones_contraloria dc on dc.pk_direccion =n.fk_direccion 
+							where ca.fk_area = I_AREA
+							group by dc.abreviatura;
+
+						select e.pk_estado into V_ESTADO  from sacs.catastro ct
+							inner join sacs.parroquia p on p.pk_parroquia = ct.fk_parroquia 
+							inner join sacs.municipio m on m.pk_municipio = p.fk_municipio 
+							inner join sacs.estado e on e.pk_estado = m.fk_estado
+							where ct.pk_catastro = I_CATASTRO;
+
+						SELECT concat(EXTRACT(YEAR FROM DATE(NOW()) ), EXTRACT(MONTH FROM DATE(NOW()) )) into V_ANO_MES;
+						select nextval('"sacs".sq_num_solicitud') into V_CORRE;
+						select lpad((V_CORRE),'9','0')  into V_COUNT_SOL;
+
+	      		
+
+	     			NUM_SOLICITUD := CONCAT(V_AV_COORD, V_ESTADO, V_ANO_MES,V_COUNT_SOL);
+					
+					------INSERT SOLICITUD 
+				   insert into "sacs".solicitud (pk_solicitud,fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente, fk_nombre_solicitud,fecha_creacion,observacion)
+										values(NUM_SOLICITUD,empresa, act_economica, tipo_solicitud, v_estatus, regente,nombre_sol,current_date,UPPER(observacion_soli));
+
+				   select s.pk_solicitud into v_solicitud from "sacs".solicitud s 
+					where s.fk_empresa = empresa
+					and s.fk_tipo_solicitud  = tipo_solicitud
+					and s.fk_estatus_solicitud = v_estatus
+					and s.fk_regente = regente; 
+
+				   insert into "sacs".detalle_solicitud_categoria (fk_solicitud, fk_categoria,created_date)
+						 values(v_solicitud, categoria,CURRENT_TIMESTAMP);
+
+				   --insert into "sacs".detalle_solicitud_forma (fk_solicitud, pk_forma_product)
+				   --values(v_solicitud, forma);
+
+				   --insert into "sacs".detalle_solicitud_operaciones (fk_solicitud, fk_categoria,fk_operaciones)
+				   --values(v_solicitud, categoria, operacion);
+
+				   --insert into "sacs".detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+				   --values(v_solicitud, tipo_producto);
+
+				   --insert into "sacs".detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+				   --values(v_solicitud, establecimiento);
+
+				   retorno:= 2; --solicitud registrada exitosamente
+				end if;
+			--else
+		end if;
+   	  
+  
+   elsif tipo_solicitud = 2 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+   elsif tipo_solicitud = 3 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_operaciones (fk_solicitud, fk_categoria,fk_operaciones)
+   values(v_solicitud, categoria, operacion);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 4 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+   elsif tipo_solicitud = 5 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+  elsif tipo_solicitud = 13 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 15 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 17 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   end if;
+
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.registrar_solicitud_v2(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, integer, integer, character varying)
+    OWNER TO postgres;
+
+
+
+
+--------------------------------------------------------
+
+----creo que este no lo utilice 
+
+
+
+-- FUNCTION: sacs.registrar_solicitud(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, character varying)
+
+-- DROP FUNCTION IF EXISTS sacs.registrar_solicitud(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, character varying);
+
+CREATE OR REPLACE FUNCTION sacs.registrar_solicitud(
+	tipo_solicitud integer,
+	nombre_sol integer,
+	act_economica integer,
+	categoria integer,
+	empresa character varying,
+	regente integer,
+	forma integer,
+	operacion integer,
+	tipo_producto integer,
+	establecimiento integer,
+	observacion_soli character varying,
+	OUT retorno integer)
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+declare
+   v_solicitud varchar;
+   v_estatus numeric;
+   --v_aniomes_actual varchar := select concat(Extract (year from current_date),extract(month from current_date)) as anio_mes;
+   v_dir_contraloria varchar;
+begin
+		   
+   if tipo_solicitud = 1 then
+   		
+		if forma is null and operacion is null 
+			and tipo_producto is null and establecimiento is null then 
+		
+			--select dc.abreviatura into v_dir_contraloria from sacs.direcciones_contraloria as dc
+				--where dc.pk_direccion = 1;
+
+			  if empresa is null or empresa = '' then 
+					retorno := 3;--no se esta pasando valor
+				else 
+
+				  select es.pk_estatus_solicitud into v_estatus from "sacs".estatus_solicitud es 
+					where es.descripcion = 'INSERTADA';
+
+				   insert into "sacs".solicitud (pk_solicitud,fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente, fk_nombre_solicitud,fecha_creacion,observacion)
+										values(NEXTVAL('"sacs".sq_solicitud'),empresa, act_economica, tipo_solicitud, v_estatus, regente,nombre_sol,current_date,observacion_soli);
+
+				   select s.pk_solicitud into v_solicitud from "sacs".solicitud s 
+					where s.fk_empresa = empresa
+					and s.fk_tipo_solicitud  = tipo_solicitud
+					and s.fk_estatus_solicitud = v_estatus
+					and s.fk_regente = regente; 
+
+				   insert into "sacs".detalle_solicitud_categoria (fk_solicitud, fk_categoria,created_date)
+						 values(v_solicitud, categoria,CURRENT_TIMESTAMP);
+
+				   --insert into "sacs".detalle_solicitud_forma (fk_solicitud, pk_forma_product)
+				   --values(v_solicitud, forma);
+
+				   --insert into "sacs".detalle_solicitud_operaciones (fk_solicitud, fk_categoria,fk_operaciones)
+				   --values(v_solicitud, categoria, operacion);
+
+				   --insert into "sacs".detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+				   --values(v_solicitud, tipo_producto);
+
+				   --insert into "sacs".detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+				   --values(v_solicitud, establecimiento);
+
+				   retorno:= 2; --solicitud registrada exitosamente
+				end if;
+			--else
+		end if;
+   	  
+  
+   elsif tipo_solicitud = 2 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+   elsif tipo_solicitud = 3 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud, fk_regente)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_operaciones (fk_solicitud, fk_categoria,fk_operaciones)
+   values(v_solicitud, categoria, operacion);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 4 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+   elsif tipo_solicitud = 5 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+   
+  elsif tipo_solicitud = 13 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 15 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   elsif tipo_solicitud = 17 then
+   	  
+   select es.descripcion
+   into v_estatus
+   from sacs.estatus_solicitud es where es.descripcion = 'INSERTADA';
+   	  
+   insert into sacs.solicitud (fk_empresa, fk_activ_economic, fk_tipo_solicitud, fk_estatus_solicitud)
+   	  					values(empresa, act_economica, tipo_solicitud, v_estatus, regente);
+   
+   select s.pk_solicitud 
+   into v_solicitud
+   from sacs.solicitud s 
+   where s.fk_empresa = empresa
+   and s.fk_tipo_solicitud  = tipo_solicitud
+   and s.estatus_solicitud = v_estatus
+   and s.fk_regente = regente;
+    
+   insert into detalle_solicitud_categoria (fk_solicitud, fk_categoria)
+   values(v_solicitud, categoria);
+  
+   insert into detalle_solicitud_tipo_producto (fk_solicitud, fk_tip_producto)
+   values(v_solicitud, tipo_producto);
+  
+   insert into detalle_solicitud_establecimiento (fk_solicitud, fk_establecimiento)
+   values(v_solicitud, establecimiento);
+  
+   retorno:= 2;
+  
+   end if;
+
+end;
+$BODY$;
+
+ALTER FUNCTION sacs.registrar_solicitud(integer, integer, integer, integer, character varying, integer, integer, integer, integer, integer, character varying)
+    OWNER TO postgres;
