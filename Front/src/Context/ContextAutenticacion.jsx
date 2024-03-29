@@ -85,7 +85,7 @@ export function ContextAutentication({children}) {  //? funcion context para tod
 
             const datauser = {
                 usuario: resp_data.correo_principal,
-                contrasena: resp_data.contrasena,
+                // contrasena: resp_data.contrasena,
                 activ_economica: resp_data.activ_economica,
                 area_empresa: resp_data.area_empresa,
                 correo_segundario: resp_data.correo_segundario,

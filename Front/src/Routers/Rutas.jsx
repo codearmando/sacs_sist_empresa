@@ -25,7 +25,7 @@ function Rutas() {
 
   const logear = () =>{
 
-    if(!storedUser?.usuario || !storedUser?.contrasena){
+    if(!storedUser?.usuario ){
       console.log('no hay data')
       return false;
     } 
